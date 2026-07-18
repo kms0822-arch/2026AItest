@@ -1,24 +1,27 @@
 <!doctype html>
 <html lang="ko">
- <head>
-  <script>window["__codeletBootstrap__"]=JSON.parse('{"A":"A","B":"20260717-05-8209e4e"}');</script>
-  <script src="/_sdk/f432b76fb310b513.telemetry_sdk.js" integrity="sha512-9FJQ55EKmmqhyyik8BhrMVfm0+iYYfb8uOlRsjtkxJMEI97qOVEI4PnHohDjQAtvAep0IOEpdQ64eki0sz62ug=="></script>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>데이터 기반 광합성 인공지능 모델 만들기</title>
-  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-  <script src="https://unpkg.com/brain.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
-  <style>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>광합성 AI 모델링 및 교사 대시보드 (통합본)</title>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://unpkg.com/brain.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
         body { font-family: 'Noto Sans KR', sans-serif; background-color: #f3f4f6; }
+        
+        /* 학생용 앱 스타일 */
         table.heatmap { width: 100%; border-collapse: collapse; text-align: center; font-size: 14px; }
         table.heatmap th, table.heatmap td { border: 1px solid #e5e7eb; padding: 12px 8px; }
         table.heatmap th { background: #f9fafb; font-weight: 600; }
         table.heatmap td { font-weight: 700; transition: transform 0.2s; }
         table.heatmap td:hover { transform: scale(1.05); }
         .tab-btn.active { background: #3498db; color: white; border-color: #3498db; }
+        
+        /* 토스트 메시지 스타일 */
         .toast { position: fixed; top: 20px; right: 20px; padding: 14px 20px; border-radius: 8px; color: white; font-size: 14px; z-index: 1000; animation: slideIn 0.3s ease, fadeOut 0.5s ease 2.5s forwards; }
         .toast-info { background: #2980b9; }
         .toast-warning { background: #e67e22; }
@@ -26,191 +29,257 @@
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
         @keyframes fadeOut { to { opacity: 0; } }
         
-        /* Dashboard Styles */
-        .dashboard-table th, .dashboard-table td { border: 1px solid #d1d5db; padding: 10px; text-align: center; }
-        .dashboard-table th { background-color: #374151; color: white; }
-        .status-badge { display: inline-block; padding: 4px 8px; border-radius: 999px; font-size: 12px; font-weight: bold; }
-        .status-done { background-color: #d1fae5; color: #065f46; }
+        /* 교사 대시보드 스타일 */
+        .dashboard-table th, .dashboard-table td { border: 1px solid #d1d5db; padding: 12px; text-align: center; }
+        .dashboard-table th { background-color: #374151; color: white; position: sticky; top: 0; }
+        .status-badge { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: bold; }
         .status-wait { background-color: #fee2e2; color: #991b1b; }
-    </style>
-  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js" type="text/javascript"></script>
-  <script src="/_sdk/e3937a0574eb2d69.data_sdk.js" type="text/javascript" integrity="sha512-xbp/ACqEQy1aDxYMtXTrR3y5MUbzxuggRR/9sD48Gl4VhLMMCiAHsxMaFV6DTdeBpR6ymF+t2zhPKYkWM3+Jfw=="></script>
-  <script src="/_sdk/9432170dbd2ae0df.resizing_sdk.js" type="text/javascript" integrity="sha512-FeT+58sb1f9ejWPWFjCbJvTT+SDwGV+ngrHUnlO7TWEOoqwOLj6p256kO3vOL7DIWl1cIgrobiof8v2bOigwPg=="></script>
- </head>
- <body data-template-id="__page-root" class="min-h-screen p-4 md:p-8">
-  <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
-    
-    <!-- Header -->
-    <header class="bg-blue-600 text-white p-6 relative">
-        <h1 data-template-id="page-title" class="text-2xl md:text-3xl font-bold mb-2">🌱 광합성 데이터 분석 및 AI 예측</h1>
-        <p data-template-id="page-desc" class="text-blue-100">데이터를 수집하고 머신러닝을 통해 최적의 광합성 조건을 찾아보세요.</p>
+        .status-done { background-color: #d1fae5; color: #065f46; }
         
-        <!-- 교사 대시보드 진입 버튼 (우측 상단 톱니바퀴) -->
-        <button onclick="toggleDashboard()" class="absolute top-6 right-6 text-blue-200 hover:text-white transition" title="교사 대시보드">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-        </button>
-    </header>
+        /* 모달 스타일 (alert/confirm 대체) */
+        #confirmModal { display: none; }
+        #confirmModal.active { display: flex; }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+    <div class="max-w-5xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden relative">
+        
+        <header class="bg-blue-600 text-white p-6 relative">
+            <h1 class="text-2xl md:text-3xl font-bold mb-2">🌱 광합성 데이터 분석 및 AI 예측</h1>
+            <p class="text-blue-100">데이터를 수집하고 머신러닝을 통해 최적의 광합성 조건을 찾아보세요.</p>
+            
+            <!-- 교사 대시보드 진입 버튼 (우측 상단 톱니바퀴) -->
+            <button onclick="toggleDashboard()" class="absolute top-6 right-6 text-blue-200 hover:text-white transition" title="교사 대시보드">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+        </header>
 
-    <!-- [학생용] 시작 화면 (로그인) -->
-    <div id="loginSection" class="p-8 text-center">
-        <h2 class="text-xl font-bold mb-4 text-gray-700">실험을 시작하기 전에 모둠명을 입력해주세요</h2>
-        <input type="text" id="studentName" placeholder="예: 1모둠, 김민수 등" class="border-2 border-gray-300 rounded-md px-4 py-2 text-lg focus:outline-none focus:border-blue-500 w-64 mb-4">
-        <br>
-        <button onclick="startActivity()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-md transition-colors">활동 시작하기</button>
-    </div>
-
-    <!-- [학생용] 메인 학습 앱 (초기 숨김) -->
-    <div id="appSection" class="hidden p-6">
-        <div class="mb-4 text-right">
-            <span class="bg-blue-100 text-blue-800 text-sm font-semibold px-3 py-1 rounded-full border border-blue-200">
-                현재 활동자: <span id="displayStudentName"></span>
-            </span>
+        <!-- [학생용] 시작 화면 (로그인) -->
+        <div id="loginSection" class="p-8 text-center">
+            <h2 class="text-xl font-bold mb-4 text-gray-700">실험을 시작하기 전에 모둠명을 입력해주세요</h2>
+            <input type="text" id="studentName" placeholder="예: 1모둠, 김민수 등" class="border-2 border-gray-300 rounded-md px-4 py-2 text-lg focus:outline-none focus:border-blue-500 w-64 mb-4">
+            <br>
+            <button onclick="startActivity()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-8 rounded-md transition-colors">활동 시작하기</button>
         </div>
 
-        <!-- 1단계: 데이터 업로드 -->
-        <section class="border border-gray-200 rounded-xl p-6 mb-8 bg-gray-50">
-            <h2 class="text-lg font-bold mb-3 text-blue-800">1단계: 센서 데이터(CSV) 업로드</h2>
-            <p class="text-sm text-gray-600 mb-4">수집한 시금치 실험 데이터를 업로드하세요.</p>
-            <div class="flex items-center gap-4 flex-wrap">
-                <label class="bg-gray-800 hover:bg-gray-900 text-white rounded-md px-5 py-2 font-semibold cursor-pointer inline-block transition"> 
-                    📁 파일 선택
-                    <input type="file" id="csvFile" accept=".csv" class="hidden"> 
-                </label> 
-                <span id="uploadStatus" class="text-sm font-medium text-orange-500">데이터를 기다리는 중...</span>
+        <!-- [학생용] 메인 학습 앱 (초기 숨김) -->
+        <div id="appSection" class="hidden p-6">
+            <div class="mb-4 text-right">
+                <span class="bg-blue-100 text-blue-800 text-sm font-semibold px-3 py-1 rounded-full border border-blue-200">
+                    현재 활동자: <span id="displayStudentName"></span>
+                </span>
             </div>
-        </section>
 
-        <!-- 2단계: 분석 -->
-        <section class="border border-gray-200 rounded-xl p-6 mb-8 bg-gray-50">
-            <h2 class="text-lg font-bold mb-3 text-blue-800">2단계: 데이터 경향성 및 상관관계 분석</h2>
-            
-            <div class="mb-4">
-                <h3 class="font-bold text-gray-700 mb-2">📊 시간에 따른 변화</h3>
-                <div class="flex flex-wrap gap-2 mb-4">
-                    <button type="button" class="tab-btn active px-4 py-1.5 rounded-full border border-gray-300 text-sm font-medium transition-colors bg-white" data-var="all">전체 변인</button> 
-                    <button type="button" class="tab-btn px-4 py-1.5 rounded-full border border-gray-300 text-sm font-medium transition-colors bg-white" data-var="light">조도 (light)</button> 
-                    <button type="button" class="tab-btn px-4 py-1.5 rounded-full border border-gray-300 text-sm font-medium transition-colors bg-white" data-var="temp">온도 (temp)</button> 
-                    <button type="button" class="tab-btn px-4 py-1.5 rounded-full border border-gray-300 text-sm font-medium transition-colors bg-white" data-var="co2">CO₂ (co2)</button> 
-                    <button type="button" class="tab-btn px-4 py-1.5 rounded-full border border-gray-300 text-sm font-medium transition-colors bg-white" data-var="o2">산소 발생량 (o2)</button>
+            <section class="border border-gray-200 rounded-xl p-6 mb-8 bg-gray-50">
+                <h2 class="text-lg font-bold mb-3 text-blue-800">1단계: 센서 데이터(CSV) 업로드</h2>
+                <p class="text-sm text-gray-600 mb-4">수집한 시금치 실험 데이터를 업로드하세요.</p>
+                <div class="flex items-center gap-4 flex-wrap">
+                    <label class="bg-gray-800 hover:bg-gray-900 text-white rounded-md px-5 py-2 font-semibold cursor-pointer inline-block transition"> 
+                        📁 파일 선택
+                        <input type="file" id="csvFile" accept=".csv" class="hidden"> 
+                    </label> 
+                    <span id="uploadStatus" class="text-sm font-medium text-orange-500">데이터를 기다리는 중...</span>
                 </div>
-                <div style="height: 300px;"><canvas id="timeSeriesChart"></canvas></div>
-            </div>
+            </section>
 
-            <hr class="my-8 border-gray-300">
-
-            <div class="mb-4">
-                <h3 class="font-bold text-gray-700 mb-2">📈 환경 요인에 따른 산소 발생량 (산점도)</h3>
-                <label for="xAxisSelect" class="text-sm font-medium mr-2">X축 선택:</label> 
-                <select id="xAxisSelect" class="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white"> 
-                    <option value="light">조도 (light)</option> <option value="temp">온도 (temp)</option> <option value="co2">이산화탄소 (co2)</option> 
-                </select>
-                <div style="height: 300px; margin-top: 10px;"><canvas id="scatterChart"></canvas></div>
-            </div>
-
-            <hr class="my-8 border-gray-300">
-            
-            <h3 class="font-bold text-gray-700 mb-2">🔥 상관관계 히트맵</h3>
-            <div id="heatmapContainer" class="overflow-x-auto bg-white p-2 rounded border">
-                <p class="text-gray-400 text-center text-sm py-4">데이터를 업로드하면 히트맵이 표시됩니다.</p>
-            </div>
-        </section>
-
-        <!-- 3단계: AI 모델링 및 결과 제출 -->
-        <section class="border border-gray-200 rounded-xl p-6 bg-gray-50">
-            <h2 class="text-lg font-bold mb-3 text-blue-800">3단계: AI 모델 학습 및 최적 조건 찾기</h2>
-            
-            <div class="flex items-center gap-4 mb-6">
-                <button type="button" id="trainBtn" disabled class="bg-blue-600 hover:bg-blue-700 text-white rounded-md px-5 py-2 font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition">🧠 인공지능 학습 시작</button> 
-                <span id="trainStatus" class="text-sm font-medium text-gray-500">데이터 업로드 후 학습 가능</span>
-            </div>
-            
-            <div class="hidden bg-white border-2 border-green-400 rounded-lg p-6" id="predictionBox">
-                <h3 class="font-bold mb-4 text-center text-green-700">최적의 광합성 조건 세팅하기 (가상 시뮬레이션)</h3>
-                <div class="space-y-4 mb-6">
-                    <div class="flex items-center gap-3 flex-wrap">
-                        <span class="text-sm font-medium w-32">조도 (lx): <strong id="lightVal">1000</strong></span> 
-                        <input type="range" id="lightRange" min="0" max="5000" step="50" value="1000" class="flex-1">
+            <section class="border border-gray-200 rounded-xl p-6 mb-8 bg-gray-50">
+                <h2 class="text-lg font-bold mb-3 text-blue-800">2단계: 데이터 경향성 및 상관관계 분석</h2>
+                
+                <div class="mb-4">
+                    <h3 class="font-bold text-gray-700 mb-2">📊 시간에 따른 변화</h3>
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <button type="button" class="tab-btn active px-4 py-1.5 rounded-full border border-gray-300 text-sm font-medium transition-colors bg-white" data-var="all">전체 변인</button> 
+                        <button type="button" class="tab-btn px-4 py-1.5 rounded-full border border-gray-300 text-sm font-medium transition-colors bg-white" data-var="light">조도</button> 
+                        <button type="button" class="tab-btn px-4 py-1.5 rounded-full border border-gray-300 text-sm font-medium transition-colors bg-white" data-var="temp">온도</button> 
+                        <button type="button" class="tab-btn px-4 py-1.5 rounded-full border border-gray-300 text-sm font-medium transition-colors bg-white" data-var="co2">CO₂</button> 
+                        <button type="button" class="tab-btn px-4 py-1.5 rounded-full border border-gray-300 text-sm font-medium transition-colors bg-white" data-var="o2">산소 발생량</button>
                     </div>
-                    <div class="flex items-center gap-3 flex-wrap">
-                        <span class="text-sm font-medium w-32">온도 (°C): <strong id="tempVal">25</strong></span> 
-                        <input type="range" id="tempRange" min="0" max="50" step="1" value="25" class="flex-1">
+                    <div style="height: 300px;"><canvas id="timeSeriesChart"></canvas></div>
+                </div>
+
+                <hr class="my-8 border-gray-300">
+
+                <div class="mb-4">
+                    <h3 class="font-bold text-gray-700 mb-2">📈 환경 요인에 따른 산소 발생량 (산점도)</h3>
+                    <label for="xAxisSelect" class="text-sm font-medium mr-2">X축 선택:</label> 
+                    <select id="xAxisSelect" class="border border-gray-300 rounded-md px-3 py-1.5 text-sm bg-white"> 
+                        <option value="light">조도 (light)</option> <option value="temp">온도 (temp)</option> <option value="co2">이산화탄소 (co2)</option> 
+                    </select>
+                    <div style="height: 300px; margin-top: 10px;"><canvas id="scatterChart"></canvas></div>
+                </div>
+
+                <hr class="my-8 border-gray-300">
+                
+                <h3 class="font-bold text-gray-700 mb-2">🔥 상관관계 히트맵</h3>
+                <div id="heatmapContainer" class="overflow-x-auto bg-white p-2 rounded border">
+                    <p class="text-gray-400 text-center text-sm py-4">데이터를 업로드하면 히트맵이 표시됩니다.</p>
+                </div>
+
+                <hr class="my-8 border-gray-300">
+                
+                <!-- 변인 관계 서술 단계 -->
+                <h3 class="font-bold text-gray-700 mb-2">📝 변인 간의 관계 결론 내리기</h3>
+                <p class="text-sm text-gray-600 mb-4">위의 그래프와 히트맵을 분석하여 산소 발생량과 각 환경 요인이 어떤 관계인지 선택해보세요.</p>
+                <div class="space-y-4 bg-white p-5 border border-indigo-200 rounded-lg shadow-sm">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span>👉 산소 발생량은</span>
+                        <span class="font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded">조도(light)</span>
+                        <span>와(과)</span>
+                        <select id="conclusion-light" class="border border-gray-300 rounded-md px-2 py-1 bg-white focus:outline-none focus:border-blue-500">
+                            <option value="">선택하세요</option>
+                            <option value="양의 상관관계">양의 상관관계 (비례)</option>
+                            <option value="음의 상관관계">음의 상관관계 (반비례)</option>
+                            <option value="관계없음">상관관계 없음</option>
+                        </select>
+                        <span>이다.</span>
                     </div>
-                    <div class="flex items-center gap-3 flex-wrap">
-                        <span class="text-sm font-medium w-32">CO₂ (ppm): <strong id="co2Val">400</strong></span> 
-                        <input type="range" id="co2Range" min="0" max="2000" step="10" value="400" class="flex-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span>👉 산소 발생량은</span>
+                        <span class="font-bold text-red-700 bg-red-50 px-2 py-1 rounded">온도(temp)</span>
+                        <span>와(과)</span>
+                        <select id="conclusion-temp" class="border border-gray-300 rounded-md px-2 py-1 bg-white focus:outline-none focus:border-blue-500">
+                            <option value="">선택하세요</option>
+                            <option value="양의 상관관계">양의 상관관계 (비례)</option>
+                            <option value="음의 상관관계">음의 상관관계 (반비례)</option>
+                            <option value="관계없음">상관관계 없음</option>
+                        </select>
+                        <span>이다.</span>
+                    </div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span>👉 산소 발생량은</span>
+                        <span class="font-bold text-purple-700 bg-purple-50 px-2 py-1 rounded">이산화탄소(CO₂)</span>
+                        <span>와(과)</span>
+                        <select id="conclusion-co2" class="border border-gray-300 rounded-md px-2 py-1 bg-white focus:outline-none focus:border-blue-500">
+                            <option value="">선택하세요</option>
+                            <option value="양의 상관관계">양의 상관관계 (비례)</option>
+                            <option value="음의 상관관계">음의 상관관계 (반비례)</option>
+                            <option value="관계없음">상관관계 없음</option>
+                        </select>
+                        <span>이다.</span>
+                    </div>
+                    <div class="text-right mt-2">
+                        <button onclick="saveConclusions()" class="bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-bold py-2 px-6 rounded-md transition-colors shadow-sm">
+                            💾 분석 결론 저장하기
+                        </button>
                     </div>
                 </div>
-                <div class="text-center mb-6">
-                    <p class="text-sm font-semibold text-gray-600 mb-1">AI가 예측한 산소 발생량</p>
-                    <p class="text-4xl font-bold" style="color:#16a085;"><span id="predictedO2">0.0</span> <span class="text-xl">mL</span></p>
+            </section>
+
+            <section class="border border-gray-200 rounded-xl p-6 bg-gray-50">
+                <h2 class="text-lg font-bold mb-3 text-blue-800">3단계: AI 모델 학습 및 최적 조건 찾기</h2>
+                
+                <div class="flex items-center gap-4 mb-6">
+                    <button type="button" id="trainBtn" disabled class="bg-blue-600 hover:bg-blue-700 text-white rounded-md px-5 py-2 font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition">🧠 인공지능 학습 시작</button> 
+                    <span id="trainStatus" class="text-sm font-medium text-gray-500">데이터 업로드 후 학습 가능</span>
                 </div>
                 
-                <!-- 제출 버튼 -->
-                <div class="text-center">
-                    <button onclick="submitFinalResult()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition transform hover:scale-105">
-                        ✨ 찾은 최적 조건 교사에게 제출하기
-                    </button>
+                <div class="hidden bg-white border-2 border-green-400 rounded-lg p-6" id="predictionBox">
+                    <h3 class="font-bold mb-4 text-center text-green-700">최적의 광합성 조건 세팅하기 (가상 시뮬레이션)</h3>
+                    <div class="space-y-4 mb-6">
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <span class="text-sm font-medium w-32">조도 (lx): <strong id="lightVal">1000</strong></span> 
+                            <input type="range" id="lightRange" min="0" max="5000" step="50" value="1000" class="flex-1">
+                        </div>
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <span class="text-sm font-medium w-32">온도 (°C): <strong id="tempVal">25</strong></span> 
+                            <input type="range" id="tempRange" min="0" max="50" step="1" value="25" class="flex-1">
+                        </div>
+                        <div class="flex items-center gap-3 flex-wrap">
+                            <span class="text-sm font-medium w-32">CO₂ (ppm): <strong id="co2Val">400</strong></span> 
+                            <input type="range" id="co2Range" min="0" max="2000" step="10" value="400" class="flex-1">
+                        </div>
+                    </div>
+                    <div class="text-center mb-6">
+                        <p class="text-sm font-semibold text-gray-600 mb-1">AI가 예측한 산소 발생량</p>
+                        <p class="text-4xl font-bold" style="color:#16a085;"><span id="predictedO2">0.0</span> <span class="text-xl">mL</span></p>
+                    </div>
+                    
+                    <!-- 제출 버튼 -->
+                    <div class="text-center">
+                        <button onclick="submitFinalResult()" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition transform hover:scale-105">
+                            ✨ 찾은 최적 조건 교사에게 제출하기
+                        </button>
+                    </div>
                 </div>
-            </div>
-        </section>
-    </div>
+            </section>
+        </div>
 
-    <!-- [교사용] 대시보드 (초기 숨김) -->
-    <div id="dashboardSection" class="hidden p-6 bg-gray-100">
-        <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold text-gray-800">👨‍🏫 교사용 학생 활동 대시보드</h2>
-            <button onclick="toggleDashboard()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md font-semibold">학생 화면으로 돌아가기</button>
+        <!-- [교사용] 대시보드 (초기 숨김) -->
+        <div id="dashboardSection" class="hidden p-6 bg-gray-100">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">👨‍🏫 교사용 학생 활동 대시보드</h2>
+                    <p class="text-sm text-gray-500 mt-1">학생들의 활동이 2초마다 자동 갱신됩니다.</p>
+                </div>
+                <button onclick="toggleDashboard()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md font-semibold transition">학생 화면으로 돌아가기</button>
+            </div>
+            
+            <div class="bg-white rounded-lg shadow overflow-x-auto">
+                <table class="w-full dashboard-table">
+                    <thead>
+                        <tr>
+                            <th class="w-[10%]">모둠(이름)</th>
+                            <th class="w-[8%]">상태</th>
+                            <th class="w-[8%]">데이터</th>
+                            <th class="w-[8%]">AI 학습</th>
+                            <th class="w-[18%]">변인 분석 결론 (조도/온도/CO2)</th>
+                            <th class="w-[20%]">제출한 최적 조건</th>
+                            <th class="w-[14%]">예측 산소량</th>
+                            <th class="w-[14%]">최종 활동 시간</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dashboardTableBody">
+                        <!-- 데이터가 자바스크립트로 여기에 추가됩니다. -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="mt-4 text-right">
+                <button onclick="showClearModal()" class="text-sm bg-red-100 text-red-600 hover:bg-red-200 px-4 py-2 rounded-md font-semibold transition">전체 활동 기록 초기화</button>
+            </div>
         </div>
         
-        <div class="bg-white rounded-lg shadow overflow-x-auto">
-            <table class="w-full dashboard-table">
-                <thead>
-                    <tr>
-                        <th>모둠(이름)</th>
-                        <th>진행 상태</th>
-                        <th>데이터 수</th>
-                        <th>AI 학습 여부</th>
-                        <th>제출한 최적 조건 (조도 / 온도 / CO2)</th>
-                        <th>예측 산소량</th>
-                        <th>최종 제출 시간</th>
-                    </tr>
-                </thead>
-                <tbody id="dashboardTableBody">
-                    <!-- 데이터가 자바스크립트로 여기에 추가됩니다. -->
-                </tbody>
-            </table>
+        <!-- 초기화 확인 모달 (alert/confirm 대체) -->
+        <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-50 items-center justify-center z-50 hidden">
+            <div class="bg-white rounded-lg p-6 max-w-sm w-full mx-4 shadow-xl text-center">
+                <h3 class="text-lg font-bold text-gray-800 mb-2">데이터 초기화</h3>
+                <p class="text-sm text-gray-600 mb-6">모든 학생의 활동 기록을 삭제하시겠습니까?<br>이 작업은 복구할 수 없습니다.</p>
+                <div class="flex justify-center gap-3">
+                    <button onclick="hideClearModal()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-md font-semibold transition">취소</button>
+                    <button onclick="clearDashboard()" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md font-semibold transition">삭제하기</button>
+                </div>
+            </div>
         </div>
-        <div class="mt-4 text-right">
-            <button onclick="clearDashboard()" class="text-sm text-red-500 hover:text-red-700 underline">데이터 초기화 (전체 삭제)</button>
-        </div>
+
     </div>
 
-  </div>
-
-  <script src="/_sdk/b7bbbe551ba4f8f5.editing_sdk.js" integrity="sha512-h06pMz6KcVo4Wjvoggb4sS5DZpb55bTriAzBmA0YwbkBA3z2ZXl8CBEbCWT+/fAsm0SwDejJ7jJHOZsLZKqPoQ=="></script>
-  <script>
-        // --- 1. 학생 추적 로직 (Local Storage 활용) ---
+    <script>
+        // --- 1. 학생 추적 및 로컬 스토리지 로직 ---
         let currentStudent = "";
         const DB_KEY = "photosynthesis_activities";
 
-        // 로컬스토리지에서 데이터 불러오기
         function getActivities() {
             return JSON.parse(localStorage.getItem(DB_KEY) || "{}");
         }
 
-        // 특정 학생의 데이터 업데이트하기
         function updateActivity(key, value) {
             if(!currentStudent) return;
             const data = getActivities();
             if(!data[currentStudent]) {
-                data[currentStudent] = { name: currentStudent, uploaded: false, dataCount: 0, trained: false, finalResult: null, lastUpdated: new Date().toLocaleTimeString() };
+                data[currentStudent] = { name: currentStudent, uploaded: false, dataCount: 0, trained: false, finalResult: null, conclusions: null, lastUpdated: new Date().toLocaleTimeString() };
             }
             data[currentStudent][key] = value;
             data[currentStudent].lastUpdated = new Date().toLocaleTimeString();
             localStorage.setItem(DB_KEY, JSON.stringify(data));
         }
 
-        // 앱 시작하기 (로그인)
+        function showToast(msg, type = 'info') {
+            const t = document.createElement('div');
+            t.className = `toast toast-${type}`;
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 3200);
+        }
+
         function startActivity() {
             const nameInput = document.getElementById('studentName').value.trim();
             if(!nameInput) {
@@ -222,12 +291,11 @@
             document.getElementById('loginSection').classList.add('hidden');
             document.getElementById('appSection').classList.remove('hidden');
             
-            // 초기 기록 생성
             updateActivity('started', true);
             showToast(`${currentStudent} 활동을 시작합니다.`, 'success');
         }
 
-        // --- 2. 기존 광합성 앱 로직 ---
+        // --- 2. 학생 앱 로직 (데이터, 차트, 머신러닝) ---
         let sensorData = [];
         let maxValues = { light: 5000, temp: 50, co2: 2000, o2: 50 };
         let net = new brain.NeuralNetwork({ hiddenLayers: [4, 4] });
@@ -239,15 +307,6 @@
         const variables = ['light', 'temp', 'co2', 'o2'];
         const varNames = { light: '조도', temp: '온도', co2: 'CO₂', o2: '산소량' };
 
-        function showToast(msg, type = 'info') {
-            const t = document.createElement('div');
-            t.className = `toast toast-${type}`;
-            t.textContent = msg;
-            document.body.appendChild(t);
-            setTimeout(() => t.remove(), 3200);
-        }
-
-        // CSV Upload
         document.getElementById('csvFile').addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -274,7 +333,6 @@
                     updateScatterChart();
                     generateHeatmap();
 
-                    // 활동 기록
                     updateActivity('uploaded', true);
                     updateActivity('dataCount', sensorData.length);
                 }
@@ -288,7 +346,6 @@
             maxValues.o2 = Math.max(...sensorData.map(d => d.o2), 50);
         }
 
-        // Time series chart (생략 없이 이전 코드 유지)
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -304,12 +361,7 @@
             if (timeChartInstance) timeChartInstance.destroy();
             const labels = sensorData.map((_, i) => `${i + 1}회차`);
             let datasets = [];
-            const colors = {
-                light: { border: '#e67e22', bg: 'rgba(230,126,34,0.1)' },
-                temp: { border: '#e74c3c', bg: 'rgba(231,76,60,0.1)' },
-                co2: { border: '#9b59b6', bg: 'rgba(155,89,182,0.1)' },
-                o2: { border: '#2ecc71', bg: 'rgba(46,204,113,0.1)' }
-            };
+            const colors = { light: { border: '#e67e22', bg: 'rgba(230,126,34,0.1)' }, temp: { border: '#e74c3c', bg: 'rgba(231,76,60,0.1)' }, co2: { border: '#9b59b6', bg: 'rgba(155,89,182,0.1)' }, o2: { border: '#2ecc71', bg: 'rgba(46,204,113,0.1)' } };
 
             if (currentTimeVar === 'all') {
                 datasets = [
@@ -321,21 +373,13 @@
             } else {
                 datasets = [{ label: `${varNames[currentTimeVar]} 추이`, data: sensorData.map(d => d[currentTimeVar]), borderColor: colors[currentTimeVar].border, backgroundColor: colors[currentTimeVar].bg, fill: true, tension: 0.2 }];
             }
-
             const options = { responsive: true, maintainAspectRatio: false, scales: { x: { grid: { display: false } } } };
             if (currentTimeVar === 'all') {
-                options.scales = {
-                    ...options.scales,
-                    'y-light': { type: 'linear', position: 'left' },
-                    'y-temp': { type: 'linear', position: 'left', grid: { drawOnChartArea: false } },
-                    'y-co2': { type: 'linear', position: 'right', grid: { drawOnChartArea: false } },
-                    'y-o2': { type: 'linear', position: 'right', grid: { drawOnChartArea: false } }
-                };
+                options.scales = { ...options.scales, 'y-light': { type: 'linear', position: 'left' }, 'y-temp': { type: 'linear', position: 'left', grid: { drawOnChartArea: false } }, 'y-co2': { type: 'linear', position: 'right', grid: { drawOnChartArea: false } }, 'y-o2': { type: 'linear', position: 'right', grid: { drawOnChartArea: false } } };
             }
             timeChartInstance = new Chart(ctx, { type: 'line', data: { labels, datasets }, options: options });
         }
 
-        // Scatter chart
         document.getElementById('xAxisSelect').addEventListener('change', updateScatterChart);
         function updateScatterChart() {
             if (sensorData.length === 0) return;
@@ -343,14 +387,9 @@
             const chartData = sensorData.map(d => ({ x: d[xVar], y: d.o2 }));
             const ctx = document.getElementById('scatterChart').getContext('2d');
             if (chartInstance) chartInstance.destroy();
-            chartInstance = new Chart(ctx, {
-                type: 'scatter',
-                data: { datasets: [{ label: `${varNames[xVar]}에 따른 산소 발생량`, data: chartData, backgroundColor: 'rgba(52,152,219,0.6)', borderColor: '#2980b9' }] },
-                options: { responsive: true, maintainAspectRatio: false }
-            });
+            chartInstance = new Chart(ctx, { type: 'scatter', data: { datasets: [{ label: `${varNames[xVar]}에 따른 산소 발생량`, data: chartData, backgroundColor: 'rgba(52,152,219,0.6)', borderColor: '#2980b9' }] }, options: { responsive: true, maintainAspectRatio: false } });
         }
 
-        // Correlation Heatmap
         function pearson(x, y) {
             const n = x.length; let sx = 0, sy = 0, sxy = 0, sx2 = 0, sy2 = 0;
             for (let i = 0; i < n; i++) { sx += x[i]; sy += y[i]; sxy += x[i]*y[i]; sx2 += x[i]*x[i]; sy2 += y[i]*y[i]; }
@@ -380,7 +419,6 @@
             document.getElementById('heatmapContainer').innerHTML = html;
         }
 
-        // Training
         document.getElementById('trainBtn').addEventListener('click', function() {
             if (sensorData.length === 0) return;
             const status = document.getElementById('trainStatus');
@@ -400,14 +438,11 @@
                 document.getElementById('trainBtn').disabled = false;
                 document.getElementById('predictionBox').classList.remove('hidden');
                 
-                // 활동 기록
                 updateActivity('trained', true);
-                
                 predict();
             }, 100);
         });
 
-        // Prediction
         ['lightRange','tempRange','co2Range'].forEach(id => {
             document.getElementById(id).addEventListener('input', predict);
         });
@@ -426,7 +461,21 @@
             document.getElementById('predictedO2').textContent = val.toFixed(2);
         }
 
-        // 학생 결과 제출
+        function saveConclusions() {
+            const cLight = document.getElementById('conclusion-light').value;
+            const cTemp = document.getElementById('conclusion-temp').value;
+            const cCo2 = document.getElementById('conclusion-co2').value;
+
+            if(!cLight || !cTemp || !cCo2) {
+                showToast('세 가지 변인에 대한 결론을 모두 선택해주세요.', 'warning');
+                return;
+            }
+
+            const conclusions = { light: cLight, temp: cTemp, co2: cCo2 };
+            updateActivity('conclusions', conclusions);
+            showToast('분석 결론이 선생님 대시보드에 저장되었습니다.', 'success');
+        }
+
         function submitFinalResult() {
             const result = {
                 light: document.getElementById('lightVal').textContent,
@@ -440,6 +489,7 @@
 
         // --- 3. 교사 대시보드 로직 ---
         let isDashboardOpen = false;
+        let dashboardInterval = null;
 
         function toggleDashboard() {
             isDashboardOpen = !isDashboardOpen;
@@ -449,9 +499,14 @@
                 document.getElementById('appSection').classList.add('hidden');
                 document.getElementById('dashboardSection').classList.remove('hidden');
                 renderDashboard();
+                
+                // 2초마다 갱신 시작
+                dashboardInterval = setInterval(renderDashboard, 2000);
             } else {
                 // 대시보드 숨기고 원래 화면으로 복귀
                 document.getElementById('dashboardSection').classList.add('hidden');
+                clearInterval(dashboardInterval);
+                
                 if(currentStudent) {
                     document.getElementById('appSection').classList.remove('hidden');
                 } else {
@@ -467,33 +522,57 @@
             const students = Object.keys(data);
             
             if(students.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="py-4 text-gray-500">아직 활동을 시작한 모둠이 없습니다.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-gray-500 font-medium">아직 활동을 시작한 모둠이 없습니다.</td></tr>';
                 return;
             }
+
+            // 최근 활동한 순으로 정렬
+            students.sort((a, b) => {
+                return (data[b].lastUpdated > data[a].lastUpdated) ? 1 : -1;
+            });
 
             students.forEach(name => {
                 const info = data[name];
                 
-                // 진행 상태 뱃지 계산
+                // 진행 상태 뱃지
                 let statusHtml = '<span class="status-badge status-wait">시작됨</span>';
                 if(info.finalResult) statusHtml = '<span class="status-badge status-done">제출 완료</span>';
-                else if(info.trained) statusHtml = '<span class="status-badge" style="background:#dbeafe; color:#1e40af">학습 완료</span>';
-                else if(info.uploaded) statusHtml = '<span class="status-badge" style="background:#fef3c7; color:#92400e">데이터 분석 중</span>';
+                else if(info.trained) statusHtml = '<span class="status-badge" style="background:#dbeafe; color:#1e40af">AI 학습 완료</span>';
+                else if(info.uploaded) statusHtml = '<span class="status-badge" style="background:#fef3c7; color:#92400e">분석 중</span>';
 
-                // 제출된 조건 텍스트
-                let conditionText = '-';
-                let o2Text = '-';
+                // 제출 조건 텍스트 구성
+                let conditionText = '<span class="text-gray-400">-</span>';
+                let o2Text = '<span class="text-gray-400">-</span>';
                 if(info.finalResult) {
-                    conditionText = `${info.finalResult.light} lx / ${info.finalResult.temp} °C / ${info.finalResult.co2} ppm`;
-                    o2Text = `<strong class="text-green-600">${info.finalResult.o2} mL</strong>`;
+                    conditionText = `
+                        <div class="inline-flex gap-2 justify-center items-center">
+                            <span class="bg-gray-100 px-2 py-1 rounded text-xs">조도 <b>${info.finalResult.light}</b></span>
+                            <span class="bg-gray-100 px-2 py-1 rounded text-xs">온도 <b>${info.finalResult.temp}</b></span>
+                            <span class="bg-gray-100 px-2 py-1 rounded text-xs">CO2 <b>${info.finalResult.co2}</b></span>
+                        </div>
+                    `;
+                    o2Text = `<strong class="text-green-600 text-lg">${info.finalResult.o2} mL</strong>`;
+                }
+
+                // 결론 텍스트 구성
+                let conclusionText = '<span class="text-gray-400 text-xs">미작성</span>';
+                if(info.conclusions) {
+                    conclusionText = `
+                        <div class="text-xs text-left inline-block space-y-1">
+                            <div><span class="text-gray-500">조도:</span> <b class="${info.conclusions.light.includes('양') ? 'text-blue-600' : 'text-gray-700'}">${info.conclusions.light}</b></div>
+                            <div><span class="text-gray-500">온도:</span> <b class="${info.conclusions.temp.includes('양') ? 'text-blue-600' : 'text-gray-700'}">${info.conclusions.temp}</b></div>
+                            <div><span class="text-gray-500">CO2:</span> <b class="${info.conclusions.co2.includes('양') ? 'text-blue-600' : 'text-gray-700'}">${info.conclusions.co2}</b></div>
+                        </div>
+                    `;
                 }
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td class="font-bold">${info.name}</td>
+                    <td class="font-bold text-gray-800">${info.name}</td>
                     <td>${statusHtml}</td>
-                    <td>${info.dataCount > 0 ? info.dataCount + '개' : '-'}</td>
+                    <td class="text-sm">${info.dataCount > 0 ? info.dataCount + '개' : '-'}</td>
                     <td>${info.trained ? '✅' : '❌'}</td>
+                    <td>${conclusionText}</td>
                     <td>${conditionText}</td>
                     <td>${o2Text}</td>
                     <td class="text-xs text-gray-500">${info.lastUpdated}</td>
@@ -502,17 +581,30 @@
             });
         }
 
+        // 초기화 모달 제어 함수
+        function showClearModal() {
+            document.getElementById('confirmModal').classList.remove('hidden');
+            document.getElementById('confirmModal').classList.add('active');
+        }
+
+        function hideClearModal() {
+            document.getElementById('confirmModal').classList.add('hidden');
+            document.getElementById('confirmModal').classList.remove('active');
+        }
+
         function clearDashboard() {
-            if(confirm("모든 학생의 활동 기록을 삭제하시겠습니까? (복구할 수 없습니다)")) {
-                localStorage.removeItem(DB_KEY);
-                currentStudent = ""; // 현재 로그인 초기화
-                renderDashboard();
-                showToast('모든 데이터가 초기화되었습니다.', 'info');
-                
-                // 강제 새로고침 효과
-                setTimeout(() => location.reload(), 1500);
-            }
+            localStorage.removeItem(DB_KEY);
+            currentStudent = ""; // 현재 로그인 초기화
+            renderDashboard();
+            hideClearModal();
+            showToast('모든 데이터가 초기화되었습니다.', 'info');
+            
+            // 초기 화면으로 돌려보내기
+            toggleDashboard();
+            document.getElementById('appSection').classList.add('hidden');
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('studentName').value = '';
         }
     </script>
- </body>
+</body>
 </html>
